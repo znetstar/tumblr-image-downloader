@@ -23,16 +23,14 @@ describe('TumblrDownloader', function () {
         let downloader = DownloaderFactory();
         let form;
 
-        it('should retrieve the login form', function (callback) {
+        it('should retrieve the login form', function () {
             this.timeout(2000);
 
-            downloader
+            return downloader
                 .getLoginForm()
                 .then(($form) => {
                     form = $form;
-                    callback();
-                })
-                .catch(callback);
+                });
         });
         
         it('should contain a form key', function () {
@@ -53,18 +51,17 @@ describe('TumblrDownloader', function () {
         let downloader = DownloaderFactory();
         let form;
 
-        before('request login form', function (callback) {
+        before('request login form', function () {
             this.timeout(2000);
-            downloader.getLoginForm().then(($form) => { form = $form; callback(); }).catch(callback);
+            return downloader.getLoginForm().then(($form) => { form = $form; });
         });
 
-        it('should successfully post the login form', function (callback) {
+        it('should successfully post the login form', function () {
             this.timeout(2000);
             form['user[email]'] = form['determine_email'] = tumblr_username;
             form['user[password]'] = tumblr_password;
     
-
-            downloader.postLoginForm(form).then(callback).catch(callback);
+            return downloader.postLoginForm(form);
         });
 
         it('should contain a valid authenticated cookies', function () {
@@ -75,11 +72,9 @@ describe('TumblrDownloader', function () {
     describe("#login(email, password)", function () {
         let downloader = DownloaderFactory();
 
-        it('should sucessfully login', function (done) {
+        it('should sucessfully login', function () {
             this.timeout(8000);
-            downloader.login(tumblr_username, tumblr_password).then(() => {
-                done();
-            }).catch(done)
+            return downloader.login(tumblr_username, tumblr_password);
         });
 
         it('should contain a valid authenticated cookies', function () {

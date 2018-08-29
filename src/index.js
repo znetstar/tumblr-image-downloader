@@ -1,9 +1,10 @@
 'use strict';
 
-const request = require('request');
+const request = require('request-promise');
 const cheerio = require('cheerio');
 const ProxyAgent = require('proxy-agent');
 const _ = require('lodash');
+const EventEmitter = require('eventemitter3');
 
 const TUMBLR_USER_AGENT = "tumblr downloader";
 
@@ -25,8 +26,12 @@ const TUMBLR_LOGIN_FORM = {
 };
 Object.seal(TUMBLR_LOGIN_FORM);
 
-class TumblrImageDownloader {
+const transform_cheerio = (body) => cheerio.load(body);
+
+class TumblrImageDownloader extends EventEmitter {
 	constructor(cookie_jar, user_agent, proxy_url) {
+		super();
+
 		let jar = this.jar = request.jar();
 		if (cookie_jar)
 			this.cookies = cookie_jar;
@@ -52,86 +57,67 @@ class TumblrImageDownloader {
 	}
 
 	async getLoginForm() {
-		return new Promise((resolve, reject) => {
-			this.request({
-				url: `https://www.tumblr.com/login`
-			}, (error, res, body) => {
-				if (error) return reject(error);
-
-				try {
-					let $ = cheerio.load(body);
-					let form_key = $('meta[name="tumblr-form-key"]').attr('content');
-					
-					let form = _.cloneDeep(this.login_form_template);
-					form.form_key = form_key;
-
-					resolve(form);
-				} catch (error) {
-					reject(error);
-				}
-			});
+		let $ = await this.request({
+			url: `https://www.tumblr.com/login`,
+			transform: transform_cheerio
 		});
+
+		let form_key = $('meta[name="tumblr-form-key"]').attr('content');
+		
+		let form = _.cloneDeep(this.login_form_template);
+		form.form_key = form_key;
+
+		return form;
 	}
 
 	async postLoginForm(form) {
-		return new Promise((resolve, reject) => {
-			this.request({
-				url: 'https://www.tumblr.com/login',
-				form,
-				method: 'POST',
-				followAllRedirects: true
-			}, (err, res, body) => {
-				if (err) return reject(err);
-				try {
-					let $ = cheerio.load(body);
-					let error_box = $('#signup_forms .error');
-					if (error_box.length)
-						reject(new Error(error_box.text()));
-					else {
-						resolve();
-					}
-				} catch (error) {
-					reject(error);
-				}
-			});		
+		let $ = await this.request({
+			url: 'https://www.tumblr.com/login',
+			form,
+			method: 'POST',
+			followAllRedirects: true,
+			transform: transform_cheerio
 		});
+
+		let error_box = $('#signup_forms .error');
+
+		if (error_box.length)
+			throw new Error(error_box.text());;
 	}
 
 	async login(username, password) {
-		return new Promise((resolve, reject) => {
-			this.request({
-				url: 'https://www.tumblr.com/dashboard',
-				followRedirects: true,
-				followAllRedirects: true			
-			}, (error, res, body) => {
-				if (error) return reject(error);
-				try {
-					let $ = cheerio.load(body);
-					if ($('#signup_forms').length) {
-						this.getLoginForm()
-						.then((form) => {
-							return _.extend(form, {
-								determine_email: username,
-								'user[email]': username,
-								'user[password]': password,								
-							});
-						})
-						.then((form) => this.postLoginForm(form))
-						.then(() => {
-							resolve({});
-						})
-						.catch(reject);
-					} else {
-						resolve({
-							already_logged_in: true
-						});
-					}
-				} catch (error) {
-					reject(error);
-				}
+		let $ = await this.request({
+			url: 'https://www.tumblr.com/dashboard',
+			followRedirects: true,
+			followAllRedirects: true,
+			transform: transform_cheerio			
+		});
+		
+		if ($('#signup_forms').length) {
+			let form = await this.getLoginForm();
+			_.extend(form, {
+				determine_email: username,
+				'user[email]': username,
+				'user[password]': password,								
 			});
+			
+			await this.postLoginForm(form);
+
+			return {};
+		} else {
+			return {
+				already_logged_in: true
+			};
+		}
+	}
+
+	async downloadPhoto(url) {
+		return await this.request({
+			url,
+			encoding: null
 		});
 	}
+
 }
 
 module.exports = { TumblrImageDownloader };
