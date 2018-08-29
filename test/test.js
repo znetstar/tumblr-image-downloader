@@ -81,4 +81,20 @@ describe('TumblrDownloader', function () {
             assert.equal("1", downloader.cookies.store.idx["tumblr.com"]["/"]["logged_in"].value, "login cookie not found or not indicating being logged in");
         });
     });
+
+    describe('#downloadPhoto(url)', function () {
+        let downloader = DownloaderFactory();
+
+        it('should download an item at the url', function () {
+            return downloader.downloadPhoto("http://example.com");
+        });
+    });
+
+    describe('#getPhotos(url)', function () {
+        let downloader = DownloaderFactory();
+
+        it('should retrieve a list of photos', function () {
+            return downloader.getPhotos('carpics', 1);
+        });
+    });
 });
