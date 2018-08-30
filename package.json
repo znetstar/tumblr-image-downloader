@@ -6,8 +6,12 @@
   "scripts": {
     "test": "mocha --exit test/test.js"
   },
-  "author": "",
-  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/znetstar/tumblr-image-downloader"
+  },
+  "author": "Zachary Boyd <zachary@zacharyboyd.nyc>",
+  "license": "Unlicense",
   "dependencies": {
     "chai": "^4.1.2",
     "cheerio": "^1.0.0-rc.2",

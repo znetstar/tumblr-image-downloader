@@ -10,7 +10,7 @@ const proxy_url = process.env.PROXY_URL || process.env.HTTP_PROXY;
 const user_agent = "Mozilla/5.0 (iPhone; CPU iPhone OS 9_1 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Version/9.0 Mobile/13B143 Safari/601.1";
 
 function DownloaderFactory() {
-    return new TumblrImageDownloader(null, user_agent, proxy_url);
+    return new TumblrImageDownloader({ user_agent, proxy_url });
 }
 
 describe('TumblrDownloader', function () {
@@ -85,16 +85,79 @@ describe('TumblrDownloader', function () {
     describe('#downloadPhoto(url)', function () {
         let downloader = DownloaderFactory();
 
-        it('should download an item at the url', function () {
-            return downloader.downloadPhoto("http://example.com");
+        it('should download a sample photo', function () {
+            return downloader.downloadPhoto("https://upload.wikimedia.org/wikipedia/commons/e/e3/NewYork_LibertyStatue.jpg")
+                .then((image_resp) => {
+                    assert.equal("image/jpeg", image_resp.headers['content-type'], 'image not returned');
+                });
         });
     });
 
     describe('#getPhotos(url)', function () {
         let downloader = DownloaderFactory();
+        let photos;
 
         it('should retrieve a list of photos', function () {
-            return downloader.getPhotos('carpics', 1);
+            return downloader.getPhotos('carpics', 1)
+                .then(($photos) => {
+                    photos = $photos;
+                    assert.isNotEmpty(photos, 'photos list either empty or null');
+                });
+        });
+
+        it('should contain objects that have the required fields', function () {
+            for (let photo of photos) {
+                assert.containsAllKeys(photo, [
+                    'author',
+                    'photo_id',
+                    'photo_url',
+                    'tags'
+                ], 'photos list does not contain objects with required fields');
+            }
+        });
+    });
+
+    describe('#scrapeBlog(options)', function () {
+        let downloader = DownloaderFactory();
+
+        it('should return photos for a single page', function () {
+            return downloader.scrapeBlog({
+                blogSubdomain: 'carpics',
+                stopAtIndex: 1,
+                returnPhotos: true
+            }).then((photos) => {
+                assert.isNotEmpty(photos);
+
+                for (let photo of photos) {
+                    assert.containsAllKeys(photo, [
+                        'author',
+                        'photo_id',
+                        'photo_url',
+                        'tags'
+                    ], 'photos list does not contain objects with required fields');
+                }
+            });
+        });
+
+        it('should return photos for a single page and download the images', function () {
+            return downloader.scrapeBlog({
+                blogSubdomain: 'carpics',
+                stopAtIndex: 1,
+                returnPhotos: true,
+                downloadPhotos: true
+            }).then((photos) => {
+                assert.isNotEmpty(photos);
+
+                for (let photo of photos) {
+                    assert.containsAllKeys(photo, [
+                        'author',
+                        'photo_id',
+                        'photo_url',
+                        'tags',
+                        'photo_bytes'
+                    ], 'photos list does not contain objects with required fields');
+                }
+            });
         });
     });
 });

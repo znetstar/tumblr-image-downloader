@@ -32,7 +32,7 @@ const transform_cheerio = (body) => cheerio.load(body);
 class TumblrImageDownloader extends EventEmitter {
 	constructor(options) {
 		super();
-		
+
 		let cookie_jar = options.cookie_jar;
 		let user_agent = options.user_agent;
 		let proxy_url = options.proxy_url;
@@ -132,7 +132,8 @@ class TumblrImageDownloader extends EventEmitter {
 	async downloadPhoto(url) {
 		return await this.request({
 			url,
-			encoding: null
+			encoding: null,
+			resolveWithFullResponse: true
 		});
 	}
 
@@ -144,7 +145,7 @@ class TumblrImageDownloader extends EventEmitter {
 		});
 
 		return $('a.photoset_photo').get().map((photoset_photo) => {
-			let photo_id =  $(photoset_photo).attr('id').split('photoset_link_').pop();
+			let photo_id =  Number($(photoset_photo).attr('id').split('photoset_link_').pop());
 			let photo_url = $('img', photoset_photo).attr('src');
 
 			return { photo_id, photo_url };
@@ -161,8 +162,8 @@ class TumblrImageDownloader extends EventEmitter {
 
 		let photos = $('article.photo, article.photoset').get();
 		
-		let process_photos = photos.map((photo_article) => {
-			let photo_id = $(photo_article).attr('data-post-id');
+		let process_photos = photos.map((photo) => {
+			let photo_id = Number($(photo).attr('data-post-id'));
 			let tags = ($('.tag-link', photo).get()).map(function (element) { return $(element).text(); });
 			let author = $('.reblog-link', photo).length ? $('.reblog-link', photo).attr('data-blog-card-username') : blogSubdomain;
 			if ($(photo).is('article.photoset')) {
@@ -183,36 +184,46 @@ class TumblrImageDownloader extends EventEmitter {
 		return _.flatten(result);
 	}
 
-	scrapeBlog(blogSubdomain, downloadPhotos) {
-		let loop = (pageNumber) => {
-			this.getPhotos(blogSubdomain, pageNumber)
-				.then((photos) => {
-					if (downloadPhotos) {
-						return photos.map((photo_info) => {
-							return this.downloadPhoto(photo_info.url)
-									.then((photo_bytes) => {
-										photo_info.photo_bytes = photo_bytes;
-										return photo_info;
-									});
-						});
-					} else {
-						return photos;
-					}
-				})
-				.then((photos) => {
-					photos.forEach((photo) => this.emit('photo', photo));
+	async scrapeBlog(options) {
+		options.pageNumber = options.pageNumber || 1;
+		options.index = options.index || 0;
+		let { pageNumber, index, blogSubdomain, downloadPhotos, returnPhotos } = options;
+		
+		let photos = await this.getPhotos(blogSubdomain, pageNumber);
 
-					if (photos.length)
-						loop(pageNumber++);
-					else
-						this.emit('end');
-				})
-				.catch((error) => {
-					this.emit('error', error);
-				});
-		};
+		if (downloadPhotos) {
+			let process_photos = photos.map((photo_info) => {
+				return this.downloadPhoto(photo_info.photo_url)
+					.then((photo_resp) => {
+						photo_info.photo_bytes = photo_resp.body;
+						return photo_info;
+					});
+			});
 
-		loop(1);
+			photos = await Promise.all(process_photos);
+		}
+
+		photos.forEach((photo) => this.emit('photo', photo));
+		if (returnPhotos) {
+			options.photos = (options.photos || []).concat(photos);
+		}
+
+		if (photos.length) {
+			if ((options.stopAtIndex && index >= options.stopAtIndex) || (options.stopAtPage && pageNumber >= options.stopAtPage)) {
+				this.emit('end');
+				if (returnPhotos)
+					return options.photos;
+				return;
+			}
+			options.pageNumber++;
+			options.index++;
+			return await this.scrapeBlog(options);
+		}
+		else {
+			this.emit('end');
+			if (returnPhotos) 
+				return options.photos;
+		}
 	}
 }
 
