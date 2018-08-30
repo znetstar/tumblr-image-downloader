@@ -1,6 +1,9 @@
 # Tumblr Image Downloader
-
 This package is a library for downloading images from Tumblr blogs. 
+
+[![NPM](https://nodei.co/npm/tumblr-image-downloader.png)](https://nodei.co/npm/tumblr-image-downloader/)
+
+[![Build Status](https://travis-ci.org/znetstar/tumblr-image-downloader.svg?branch=master)](https://travis-ci.org/znetstar/tumblr-image-downloader)
 
 The library contains a class `TumblrImageDownloader`.
 
