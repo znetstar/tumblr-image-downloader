@@ -1,7 +1,7 @@
 {
   "name": "tumblr-image-downloader",
   "version": "1.0.0",
-  "description": "",
+  "description": "A library for downloading images from Tumblr blogs.",
   "main": "src/index.js",
   "scripts": {
     "test": "mocha --exit test/test.js"

@@ -185,46 +185,53 @@ class TumblrImageDownloader extends EventEmitter {
 	}
 
 	async scrapeBlog(options) {
+		if (!options.blogSubdomain)
+			throw new Exception("Blog subdomain not provided");
 		options.pageNumber = options.pageNumber || 1;
 		options.index = options.index || 0;
 		let { pageNumber, index, blogSubdomain, downloadPhotos, returnPhotos } = options;
-		
-		let photos = await this.getPhotos(blogSubdomain, pageNumber);
+		try {
+			let photos = await this.getPhotos(blogSubdomain, pageNumber);
 
-		if (downloadPhotos) {
-			let process_photos = photos.map((photo_info) => {
-				return this.downloadPhoto(photo_info.photo_url)
-					.then((photo_resp) => {
-						photo_info.photo_bytes = photo_resp.body;
-						return photo_info;
-					});
-			});
+			if (downloadPhotos) {
+				let process_photos = photos.map((photo_info) => {
+					return this.downloadPhoto(photo_info.photo_url)
+						.then((photo_resp) => {
+							photo_info.photo_bytes = photo_resp.body;
+							return photo_info;
+						});
+				});
 
-			photos = await Promise.all(process_photos);
-		}
-
-		photos.forEach((photo) => this.emit('photo', photo));
-		if (returnPhotos) {
-			options.photos = (options.photos || []).concat(photos);
-		}
-
-		if (photos.length) {
-			if ((options.stopAtIndex && index >= options.stopAtIndex) || (options.stopAtPage && pageNumber >= options.stopAtPage)) {
-				this.emit('end');
-				if (returnPhotos)
-					return options.photos;
-				return;
+				photos = await Promise.all(process_photos);
 			}
-			options.pageNumber++;
-			options.index++;
-			return await this.scrapeBlog(options);
+
+			photos.forEach((photo) => this.emit('photo', photo));
+			if (returnPhotos) {
+				options.photos = (options.photos || []).concat(photos);
+			}
+
+			if (photos.length) {
+				if ((options.stopAtIndex && index >= options.stopAtIndex) || (options.stopAtPage && pageNumber >= options.stopAtPage)) {
+					this.emit('end');
+					if (returnPhotos)
+						return options.photos;
+					return;
+				}
+				options.pageNumber++;
+				options.index++;
+				return await this.scrapeBlog(options);
+			}
+			else {
+				this.emit('end');
+				if (returnPhotos) 
+					return options.photos;
+			}
+		} catch (error) { 
+			this.emit('error', error);
+			throw error;
 		}
-		else {
-			this.emit('end');
-			if (returnPhotos) 
-				return options.photos;
-		}
-	}
+	} 
+	
 }
 
 module.exports = { TumblrImageDownloader };
