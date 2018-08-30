@@ -9,10 +9,10 @@ All methods will return promises.
 ## Configuration
 
 The class constructor takes an object containing options. The following fields are accepted:
-* `proxy_url` url to a proxy server that will be used to service each request. Will accept any url [proxy-agent(https://github.com/TooTallNate/node-proxy-agent)] will accept.
+* `proxy_url` url to a proxy server that will be used to service each request. Will accept any url [proxy-agent](https://github.com/TooTallNate/node-proxy-agent) will accept.
 * `user_agent` the user-agent that will be used to make desktop requests.
 * `mobile_user_agent` the user-agent that will be used to make mobile requests.
-* `cookie_jar` a [tough-cookie(https://github.com/salesforce/tough-cookie)] Cookie Jar that will be used with each request.
+* `cookie_jar` a [tough-cookie](https://github.com/salesforce/tough-cookie) Cookie Jar that will be used with each request.
 
 ## Photos
 
@@ -28,7 +28,7 @@ Each photo object will contain the following fields
 ### login(username, password)
 signs in as the user for all future requests.
 
-a [tough-cookie(https://github.com/salesforce/tough-cookie)] cookie jar at `this.cookies` can be used to retrieve/set the authenticated cookies.
+a [tough-cookie](https://github.com/salesforce/tough-cookie) cookie jar at `this.cookies` can be used to retrieve/set the authenticated cookies.
 
 ### getPhotos(blogSubdomain, pageNumber)
 returns a list of photos from a single page of a blog

@@ -7,10 +7,9 @@ require('dotenv').load();
 const tumblr_username = process.env.TUMBLR_USERNAME;
 const tumblr_password = process.env.TUMBLR_PASSWORD;
 const proxy_url = process.env.PROXY_URL || process.env.HTTP_PROXY;
-const user_agent = "Mozilla/5.0 (iPhone; CPU iPhone OS 9_1 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Version/9.0 Mobile/13B143 Safari/601.1";
 
 function DownloaderFactory() {
-    return new TumblrImageDownloader({ user_agent, proxy_url });
+    return new TumblrImageDownloader({ proxy_url });
 }
 
 describe('TumblrDownloader', function () {
