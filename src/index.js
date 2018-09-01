@@ -38,9 +38,7 @@ class TumblrImageDownloader extends EventEmitter {
 		let proxy_url = options.proxy_url;
 		let mobile_user_agent = options.mobile_user_agent;
 
-		let jar = this.jar = request.jar();
-		if (cookie_jar)
-			this.cookies = cookie_jar;
+		let jar = this.jar = request.jar(cookie_jar);
 		
 		let agent = this.agent = proxy_url ? new ProxyAgent(proxy_url) : void(0);
 		this.user_agent = user_agent || TUMBLR_USER_AGENT;
