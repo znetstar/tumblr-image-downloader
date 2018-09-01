@@ -143,7 +143,7 @@ class TumblrImageDownloader extends EventEmitter {
 		});
 
 		return $('a.photoset_photo').get().map((photoset_photo) => {
-			let photo_id =  Number($(photoset_photo).attr('id').split('photoset_link_').pop());
+			let photo_id =  $(photoset_photo).attr('id').split('photoset_link_').pop();
 			let photo_url = $('img', photoset_photo).attr('src');
 
 			return { photo_id, photo_url };
@@ -152,7 +152,7 @@ class TumblrImageDownloader extends EventEmitter {
 
 	async getPhotos(blogSubdomain, pageNumber) {
 		let page = pageNumber || 1;
-		let $ = await request({
+		let $ = await this.request({
 			url: `https://${blogSubdomain}.tumblr.com/page/${page}`,
 			headers: this.xhr_headers,
 			transform: transform_cheerio
@@ -161,12 +161,12 @@ class TumblrImageDownloader extends EventEmitter {
 		let photos = $('article.photo, article.photoset').get();
 		
 		let process_photos = photos.map((photo) => {
-			let photo_id = Number($(photo).attr('data-post-id'));
+			let photo_id = $(photo).attr('data-post-id');
 			let tags = ($('.tag-link', photo).get()).map(function (element) { return $(element).text(); });
 			let author = $('.reblog-link', photo).length ? $('.reblog-link', photo).attr('data-blog-card-username') : blogSubdomain;
 			if ($(photo).is('article.photoset')) {
 				let photoset_url = `https://${blogSubdomain}.tumblr.com`+$('iframe.photoset', photo).attr('src');
-				return getPhotoset(photoset_url)
+				return this.getPhotoset(photoset_url)
 						.then((photoset_photos) => {
 							return photoset_photos.map((photo) => {
 								return _.extend(photo, { tags, author });
@@ -217,6 +217,7 @@ class TumblrImageDownloader extends EventEmitter {
 				}
 				options.pageNumber++;
 				options.index++;
+				this.emit('pageChange', { blogSubdomain, pageNumber, index  })
 				return await this.scrapeBlog(options);
 			}
 			else {
