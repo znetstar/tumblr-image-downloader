@@ -184,7 +184,7 @@ class TumblrImageDownloader extends EventEmitter {
 
 	async scrapeBlog(options) {
 		if (!options.blogSubdomain)
-			throw new Exception("Blog subdomain not provided");
+			throw new Error("Blog subdomain not provided");
 		options.pageNumber = options.pageNumber || 1;
 		options.index = options.index || 0;
 		let { pageNumber, index, blogSubdomain, downloadPhotos, returnPhotos } = options;
