@@ -1,6 +1,6 @@
 'use strict';
 
-const request = require('request-promise');
+const request = require('request-promise-any');
 const cheerio = require('cheerio');
 const ProxyAgent = require('proxy-agent');
 const _ = require('lodash');

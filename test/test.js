@@ -139,6 +139,7 @@ describe('TumblrDownloader', function () {
         });
 
         it('should return photos for a single page and download the images', function () {
+            this.timeout(5000);
             return downloader.scrapeBlog({
                 blogSubdomain: 'carpics',
                 stopAtIndex: 1,

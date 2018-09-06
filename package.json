@@ -1,6 +1,6 @@
 {
   "name": "tumblr-image-downloader",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A library for downloading images from Tumblr blogs",
   "main": "src/index.js",
   "scripts": {
@@ -19,7 +19,7 @@
     "nconf": "^0.10.0",
     "proxy-agent": "^3.0.1",
     "request": "^2.88.0",
-    "request-promise": "^4.2.2"
+    "request-promise-any": "^1.0.5"
   },
   "devDependencies": {
     "dotenv": "^6.0.0",
