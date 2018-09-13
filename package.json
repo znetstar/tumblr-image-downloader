@@ -1,6 +1,6 @@
 {
   "name": "tumblr-image-downloader",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "A library for downloading images from Tumblr blogs",
   "main": "src/index.js",
   "scripts": {
@@ -11,7 +11,7 @@
     "url": "https://github.com/znetstar/tumblr-image-downloader"
   },
   "author": "Zachary Boyd <zachary@zacharyboyd.nyc>",
-  "license": "Unlicense",
+  "license": "CC0-1.0",
   "dependencies": {
     "cheerio": "^1.0.0-rc.2",
     "eventemitter3": "^3.1.0",
