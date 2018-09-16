@@ -72,7 +72,7 @@ function getPhotoPath(parentDir, photo) {
 }
 
 /**
- * Downloads an issue writing either to a file or stdout.
+ * Downloads a blog saving it to a directory.
  * @param {Provider} nconf - The nconf instance.
  * @param {Logger} logs - The winston logger.
  * @async
