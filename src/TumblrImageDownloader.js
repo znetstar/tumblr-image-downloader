@@ -350,6 +350,8 @@ class TumblrImageDownloader extends EventEmitter {
      * @property {string} blogSubdomain - Subdomain of the blog to scrape from.
      * @property {boolean} [downloadPhotos=false] - Download the photos rather than just grabbing the URLs.
      * @property {boolean} [returnPhotos=false] - Returns all of the photos as an array.
+	 * @property {number} [stopAtIndex] - Stop after scraping this many pages.
+	 * @property {number} [stopAtPage] - Stop when this page in the blog is reached.
      */
 
     /**
@@ -387,13 +389,27 @@ class TumblrImageDownloader extends EventEmitter {
 				photos = await Promise.all(process_photos);
 			}
 
-			photos.forEach((photo) => this.emit('photo', photo));
+			for (let photo of photos) {
+				/**
+				 * Fires when a photo has been scraped.
+				 * @event TumblrImageDownloader#photo
+				 * @type {Photo}
+				 * 
+				 */
+				this.emit('photo', photo);
+			}
+			
 			if (returnPhotos) {
 				options.photos = (options.photos || []).concat(photos);
 			}
 
 			if (photos.length) {
 				if ((options.stopAtIndex && index >= options.stopAtIndex) || (options.stopAtPage && pageNumber >= options.stopAtPage)) {
+					/**
+					 * Fires when the scraper has scrapped all pages.
+					 * @event TumblrImageDownloader#end
+					 * 
+					 */
 					this.emit('end');
 					if (returnPhotos)
 						return options.photos;
@@ -401,6 +417,20 @@ class TumblrImageDownloader extends EventEmitter {
 				}
 				options.pageNumber++;
 				options.index++;
+				/**
+				 * Represnets an object that will be sent with {@link TumblrImageDownloader#pageChange}
+				 * @typedef PageChangeEvent
+				 * @property {string} blogSubdomain - Subdomain of the blog being scraped.
+				 * @property {number} pageNumber - Page the scraper is currently on in the blog.
+				 * @property {number} index - How many pages have been scraped so far.
+				 */
+				
+				/**
+				 * Fires when the scraper has moved on to the next page.
+				 * @event TumblrImageDownloader#pageChange
+				 * @type {PageChangeEvent}
+				 * 
+				 */
 				this.emit('pageChange', { blogSubdomain, pageNumber, index  })
 				return await this.scrapeBlog(options);
 			}
@@ -410,6 +440,12 @@ class TumblrImageDownloader extends EventEmitter {
 					return options.photos;
 			}
 		} catch (error) { 
+			/**
+			 * Fires if an error occurs during scraping.
+			 * @event TumblrImageDownloader#error
+			 * @type {Error}
+			 * 
+			 */
 			this.emit('error', error);
 			throw error;
 		}
