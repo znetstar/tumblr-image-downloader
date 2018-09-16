@@ -267,8 +267,8 @@ class TumblrImageDownloader extends EventEmitter {
      * Photo in a photoset.
      * 
      * @typedef {Object} PhotosetPhoto
-     * @property {string} photo_id - ID of the photo
-     * @property {string} photo_url - URL of the photo
+     * @property {string} photoId - ID of the photo
+     * @property {string} photoUrl - URL of the photo
      */
 
      /**
@@ -286,10 +286,10 @@ class TumblrImageDownloader extends EventEmitter {
 		});
 
 		return $('a.photoset_photo').get().map((photoset_photo) => {
-			let photo_id =  $(photoset_photo).attr('id').split('photoset_link_').pop();
-			let photo_url = $('img', photoset_photo).attr('src');
+			let photoId =  $(photoset_photo).attr('id').split('photoset_link_').pop();
+			let photoUrl = $('img', photoset_photo).attr('src');
 
-			return { photo_id, photo_url };
+			return { photoId, photoUrl };
 		});
     }
     
@@ -297,11 +297,11 @@ class TumblrImageDownloader extends EventEmitter {
      * Represents data on a individual photo.
      * 
      * @typedef {Object} Photo 
-     * @property {string} photo_id - Unique ID of the photo.
-     * @property {string} photo_url - URL of the photo.
+     * @property {string} photoId - Unique ID of the photo.
+     * @property {string} photoUrl - URL of the photo.
      * @property {string[]} tags - Tags that belong to the photo.
      * @property {string} author - Original author of the photo.
-     * @property {Buffer} [photo_bytes] - The actual downloaded photo. 
+     * @property {Buffer} [photoBytes] - The actual downloaded photo. 
      */
 
     /**
@@ -321,21 +321,19 @@ class TumblrImageDownloader extends EventEmitter {
 
 		let photos = $('article.photo, article.photoset').get();
 		
-		let process_photos = photos.map((photo) => {
-			let photo_id = $(photo).attr('data-post-id');
-			let tags = ($('.tag-link', photo).get()).map(function (element) { return $(element).text(); });
+		let process_photos = photos.map(async (photo) => {
+			let photoId = $(photo).attr('data-post-id');
+			let tags = ($('.tag-link', photo).get()).map((element) => $(element).text());
 			let author = $('.reblog-link', photo).length ? $('.reblog-link', photo).attr('data-blog-card-username') : blogSubdomain;
 			if ($(photo).is('article.photoset')) {
 				let photoset_url = `https://${blogSubdomain}.tumblr.com`+$('iframe.photoset', photo).attr('src');
-				return this.getPhotoset(photoset_url)
-						.then((photoset_photos) => {
-							return photoset_photos.map((photo) => {
-								return _.extend(photo, { tags, author });
-							});
-						})
+				let photoset_photos = await this.getPhotoset(photoset_url);
+				return photoset_photos.map((photo) => {
+					return _.extend(photo, { tags, author });
+				});
 			} else {
-				let photo_url = $('img', photo).attr('src');
-				return Promise.resolve({ photo_id, photo_url, tags, author });
+				let photoUrl = $('img', photo).attr('src');
+				return { photoId, photoUrl, tags, author };
 			}
 		});
 
@@ -352,6 +350,7 @@ class TumblrImageDownloader extends EventEmitter {
      * @property {boolean} [returnPhotos=false] - Returns all of the photos as an array.
 	 * @property {number} [stopAtIndex] - Stop after scraping this many pages.
 	 * @property {number} [stopAtPage] - Stop when this page in the blog is reached.
+	 * @property {Function} [predownloadFilter] - A function that will be used to filter {@link Photo|Photos} before downloading them.
      */
 
     /**
@@ -376,14 +375,17 @@ class TumblrImageDownloader extends EventEmitter {
 		let { pageNumber, index, blogSubdomain, downloadPhotos, returnPhotos } = options;
 		try {
 			let photos = await this.getPhotos(blogSubdomain, pageNumber);
+			let photo_count = photos.length;
 
 			if (downloadPhotos) {
-				let process_photos = photos.map((photo_info) => {
-					return this.downloadPhoto(photo_info.photo_url)
-						.then((photo_resp) => {
-							photo_info.photo_bytes = photo_resp.body;
-							return photo_info;
-						});
+				if (options.predownloadFilter) {
+					photos = photos.filter(options.predownloadFilter);
+				}
+
+				let process_photos = photos.map(async (photo_info) => {
+					let photo_resp = await this.downloadPhoto(photo_info.photoUrl)
+					photo_info.photoBytes = photo_resp.body;
+					return photo_info;
 				});
 
 				photos = await Promise.all(process_photos);
@@ -403,7 +405,7 @@ class TumblrImageDownloader extends EventEmitter {
 				options.photos = (options.photos || []).concat(photos);
 			}
 
-			if (photos.length) {
+			if (photo_count) {
 				if ((options.stopAtIndex && index >= options.stopAtIndex) || (options.stopAtPage && pageNumber >= options.stopAtPage)) {
 					/**
 					 * Fires when the scraper has scrapped all pages.
