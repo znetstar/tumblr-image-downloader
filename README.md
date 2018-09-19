@@ -17,7 +17,7 @@ For programmatic access, see the documentation below.
 
 # Documentation
 
-To generate documentation run `npm run docs` and open `docs/index.html` to view. A copy of the documentation [is also available here](https://tumblr-image-downloader.docs.zacharyboyd.nyc).
+Documentation is available under `docs/`. A copy of the documentation [is also available here](https://tumblr-image-downloader.docs.zacharyboyd.nyc).
 
 # Test
 
