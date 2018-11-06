@@ -124,11 +124,11 @@ async function download(argv, nconf, logs) {
 
                 await downloader.login(username, password);
 
-                logs.info(`login success beginning download of blog "${blogSubdomain}"`);
+                logs.info(`login as ${username} success beginning download of blog "${blogSubdomain}"`);
 
                 let skipExistingFilter = (photo) => {
                     let photoPath = getPhotoPath(dir, photo);
-                    if (fs.existsSync(dir, photo)) {
+                    if (fs.existsSync(photoPath)) {
                         logs.debug(`photo "${photo.photoId}" has already been saved to "${photoPath}". skipping`);
                         return false;
                     }
