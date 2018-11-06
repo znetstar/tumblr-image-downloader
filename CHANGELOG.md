@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.8] - 2018-11-06
+### Changed
+- Fixes bug in skipping existing images.
+
 ## [1.0.4] - 2018-09-12
 ### Changed 
 - Changed license to CC0
