@@ -311,7 +311,7 @@ class TumblrImageDownloader extends EventEmitter {
      * @returns {Promise<Photo[]>}
      * @async
      */
-	async getPhotos(blogSubdomain, pageNumber) {
+	async getPhotos(blogSubdomain, pageNumber, last) {
 		let page = pageNumber || 1;
 		let $ = await this.request({
 			url: `https://${blogSubdomain}.tumblr.com/page/${page}`,
@@ -320,9 +320,17 @@ class TumblrImageDownloader extends EventEmitter {
 		});
 
 		let photos = $('article.photo, article.photoset').get();
-		
+
+		let lastMatch;
+		if (last) {
+			lastMatch = photos.map(e => $(e).attr('data-post-id')).indexOf(last);
+			photos = photos.slice(0, lastMatch);
+		}
+
+
 		let process_photos = photos.map(async (photo) => {
 			let photoId = $(photo).attr('data-post-id');
+
 			let tags = ($('.tag-link', photo).get()).map((element) => $(element).text());
 			let author = $('.reblog-link', photo).length ? $('.reblog-link', photo).attr('data-blog-card-username') : blogSubdomain;
 			if ($(photo).is('article.photoset')) {

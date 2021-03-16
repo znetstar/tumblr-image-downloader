@@ -1,6 +1,6 @@
 {
   "name": "tumblr-image-downloader",
-  "version": "1.0.8",
+  "version": "2.0.0",
   "description": "Contains tools for downloading images from Tumblr blogs",
   "main": "src/index.js",
   "bin": {
@@ -18,26 +18,26 @@
   "license": "CC0-1.0",
   "dependencies": {
     "any-promise": "^1.3.0",
-    "bluebird": "^3.5.2",
-    "cheerio": "^1.0.0-rc.2",
-    "eventemitter3": "^3.1.0",
-    "lodash": "^4.17.10",
-    "nconf": "^0.10.0",
-    "proxy-agent": "^3.0.1",
-    "request": "^2.88.0",
-    "request-promise-any": "^1.0.5",
-    "winston": "^3.1.0",
-    "yargs": "^12.0.2"
+    "bluebird": "^3.7.2",
+    "cheerio": "^1.0.0-rc.5",
+    "eventemitter3": "^4.0.7",
+    "lodash": "^4.17.21",
+    "nconf": "^0.11.2",
+    "proxy-agent": "^4.0.1",
+    "request": "^2.88.2",
+    "request-promise-any": "^1.0.9",
+    "winston": "^3.3.3",
+    "yargs": "^16.2.0"
   },
   "devDependencies": {
-    "chai": "^4.1.2",
-    "del": "^3.0.0",
-    "docdash": "^1.0.0",
-    "dotenv": "^6.0.0",
-    "grunt": "^1.0.3",
-    "grunt-jsdoc": "^2.3.0",
-    "jsdoc": "^3.5.5",
-    "mmmagic": "^0.5.1",
-    "mocha": "^5.2.0"
+    "chai": "^4.3.4",
+    "del": "^6.0.0",
+    "docdash": "^1.2.0",
+    "dotenv": "^8.2.0",
+    "grunt": "^1.3.0",
+    "grunt-jsdoc": "^2.4.1",
+    "jsdoc": "^3.6.6",
+    "mmmagic": "^0.5.3",
+    "mocha": "^8.3.2"
   }
 }
