@@ -26,6 +26,7 @@
     "proxy-agent": "^4.0.1",
     "request": "^2.88.2",
     "request-promise-any": "^1.0.9",
+    "sharp": "^0.27.2",
     "winston": "^3.3.3",
     "yargs": "^16.2.0"
   },

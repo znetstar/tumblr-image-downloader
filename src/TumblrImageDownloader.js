@@ -5,6 +5,7 @@ const cheerio = require('cheerio');
 const ProxyAgent = require('proxy-agent');
 const _ = require('lodash');
 const EventEmitter = require('eventemitter3');
+const sharp = require("sharp");
 
 /**
  * The default user agent that will be used with all XHR requests.
@@ -255,13 +256,43 @@ class TumblrImageDownloader extends EventEmitter {
      * @returns {Promise<ClientResponse>} - HTTP Response.
      * @async
      */
-	async downloadPhoto(url) {
-		return await this.request({
+	async downloadPhoto(url, fileType = 'png') {
+		const promises = [];
+
+		const sharpStream = sharp({
+			failOnError: false
+		});
+
+		promises.push(
+			sharpStream
+				.clone()
+				[fileType]()
+				.toBuffer()
+		);
+
+		let res;
+
+		let req = this.request({
 			url,
 			encoding: null,
 			resolveWithFullResponse: true
 		});
-    }
+
+		let [ resp, body ] = await Promise.all([
+			(async () => {
+				return new Promise((resolve, reject) => {
+					req.once('response', (resp) => resolve(resp));
+					req.once('error', (resp) => reject(resp));
+					req.pipe(sharpStream);
+				});
+			})(),
+			promises[0]
+		])
+
+		resp.body = body;
+
+		return resp;
+	}
     
     /**
      * Photo in a photoset.
@@ -323,7 +354,9 @@ class TumblrImageDownloader extends EventEmitter {
 
 		let lastMatch;
 		if (last) {
-			lastMatch = photos.map(e => $(e).attr('data-post-id')).indexOf(last);
+			let mm = photos.map(e => $(e).attr('data-post-id')).filter(Boolean).map(s => s.split('_').shift());
+			lastMatch = [].concat(last).map(l => l.split('_').shift()).filter(f => mm.includes(f))[0];
+			if (lastMatch >= 0) lastMatch = mm.indexOf(lastMatch);
 			photos = photos.slice(0, lastMatch);
 		}
 
@@ -359,6 +392,7 @@ class TumblrImageDownloader extends EventEmitter {
 	 * @property {number} [stopAtIndex] - Stop after scraping this many pages.
 	 * @property {number} [stopAtPage] - Stop when this page in the blog is reached.
 	 * @property {Function} [predownloadFilter] - A function that will be used to filter {@link Photo|Photos} before downloading them.
+	 * @orioerty {string} [lastId] - Last photo id to start from
      */
 
     /**
@@ -382,7 +416,7 @@ class TumblrImageDownloader extends EventEmitter {
 		options.index = options.index || 0;
 		let { pageNumber, index, blogSubdomain, downloadPhotos, returnPhotos } = options;
 		try {
-			let photos = await this.getPhotos(blogSubdomain, pageNumber);
+			let photos = await this.getPhotos(blogSubdomain, pageNumber, options.lastId);
 			let photo_count = photos.length;
 
 			if (downloadPhotos) {
