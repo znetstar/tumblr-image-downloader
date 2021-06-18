@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.0] - 2021-06-18
+### Changed
+- Adds support for Tumblr blogs only accessible via "tumblr.com/blogs/..."
+- EventEmitter was switched to `eventemitter2`
+- If the `error` event handler is listened to `TumblrImageDownloader` will not throw most errors.
+### Added 
+- `getPhotos` can now be called as an ES6 iterator via `getPhotosIterator`
+
 ## [1.0.8] - 2018-11-06
 ### Changed
 - Fixes bug in skipping existing images.

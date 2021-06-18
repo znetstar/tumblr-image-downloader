@@ -4,31 +4,31 @@ const request = require('request-promise-any');
 const cheerio = require('cheerio');
 const ProxyAgent = require('proxy-agent');
 const _ = require('lodash');
-const EventEmitter = require('eventemitter3');
+const { EventEmitter2: EventEmitter } = require('eventemitter2');
 const sharp = require("sharp");
 
 /**
  * The default user agent that will be used with all XHR requests.
  * Is a mobile user agent to ensure Tumblr sends a mobile-formatted page.
- * 
+ *
  * @constant
  * @type {string}
- * @default 
+ * @default
  */
 const TUMBLR_MOBILE_USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 9_1 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Version/9.0 Mobile/13B143 Safari/601.1";
 
 /**
  * The default user agent that will be used with non-XHR requests.
- * 
+ *
  * @constant
  * @type {string}
- * @default 
+ * @default
  */
 const TUMBLR_USER_AGENT =  "Mozilla/5.0 (iPhone; CPU iPhone OS 9_1 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Version/9.0 Mobile/13B143 Safari/601.1";
 
 /**
  * The default login form that will be POSTed.
- * 
+ *
  * @constant
  * @type {object}
  * @default
@@ -44,7 +44,7 @@ const TUMBLR_LOGIN_FORM = Object.freeze({
 	follow: "",
 	http_referer: "https://www.tumblr.com/",
 	seen_suggestion: "0",
-	used_suggestion: "0", 
+	used_suggestion: "0",
 	used_auto_suggestion: "0",
 	about_tumblr_slide: "",
 	random_username_suggestions: '[""]',
@@ -52,7 +52,7 @@ const TUMBLR_LOGIN_FORM = Object.freeze({
 
 /**
  * Transforms an http response into a cheerio object (`$`).
- * 
+ *
  * @param {string} body - Body of the response.
  * @returns {any} - Cheerio object.
  * @private
@@ -61,14 +61,14 @@ function transform_cheerio (body) { return cheerio.load(body); }
 
 /**
  * This class contains methods that can download photos from a Tumblr blog.
- * 
+ *
  * @extends {EventEmitter}
  */
 class TumblrImageDownloader extends EventEmitter {
 	/**
 	 * Options that can be passed to the constructor
 	 * @typedef TumblrImageDownloaderOptions
-	 * 
+	 *
 	 * @property {CookieJar} [cookie_jar] - A {@link https://bit.ly/2Oq89f0|tough-cookie} compatiable cookie jar. The CookieJar object must be created with `looseMode` set to `true`.
 	 * @property {string} [user_agent=TUMBLR_USER_AGENT] -  The user-agent that will be used for desktop requests.
 	 * @property {string} [mobile_user_agent=TUMBLR_MOBILE_USER_AGENT] -  The user-agent that will be used for mobile requests.
@@ -97,7 +97,7 @@ class TumblrImageDownloader extends EventEmitter {
 		 * @public
 		 */
 		this.agent = proxy_url ? new ProxyAgent(proxy_url) : void(0);
-	
+
 		/**
 		 * The user-agent that will be used with each desktop request.
 		 * @public
@@ -144,21 +144,21 @@ class TumblrImageDownloader extends EventEmitter {
 
     /**
      * The cookies that will be sent with each request.
-     * 
+     *
 	 * @param {CookieJar} value- A {@link https://bit.ly/2Oq89f0|tough-cookie} compatible `CookieJar` object.
      * @returns {CookieJar} - A {@link https://bit.ly/2Oq89f0|tough-cookie} compatible `CookieJar` object.
      */
 	get cookies() {
 		return this.jar._jar;
 	}
-    
+
 	set cookies(value) {
 		this.jar._jar = value;
 	}
 
     /**
      * Returns the headers that will be used during XHR requests.
-     * 
+     *
      * @returns {Object} - Object containing headers
      * @private
      */
@@ -170,9 +170,9 @@ class TumblrImageDownloader extends EventEmitter {
 	}
 
     /**
-     * Retrieves the login form from the Tumblr login page and extracts the CSRF token. 
+     * Retrieves the login form from the Tumblr login page and extracts the CSRF token.
      * Returns the {@link TumblrImageDownloader#login_form_template} object with the CSRF token set to `form_key`.
-     * 
+     *
      * @returns {Promise<Object>} - The Tumblr login form.
      * @async
      */
@@ -183,7 +183,7 @@ class TumblrImageDownloader extends EventEmitter {
 		});
 
 		let form_key = $('meta[name="tumblr-form-key"]').attr('content');
-		
+
 		let form = _.cloneDeep(this.login_form_template);
 		form.form_key = form_key;
 
@@ -192,7 +192,7 @@ class TumblrImageDownloader extends EventEmitter {
 
     /**
      * Posts the login form.
-     * 
+     *
      * @param {Object} - The Tumblr login form.
      * @async
      */
@@ -213,12 +213,12 @@ class TumblrImageDownloader extends EventEmitter {
 
     /**
      * @typedef {Object} TumblrLoginResponse
-     * @property {boolean} [already_logged_in] - Indicates if a session already exists for this account.  
+     * @property {boolean} [already_logged_in] - Indicates if a session already exists for this account.
      */
 
     /**
      * Login to the Tumblr account using the provided credentials.
-     * 
+     *
      * @param {string} - The username to use.
      * @param {string} - The password to use.
      * @returns {Promise<TumblrLoginResponse>}
@@ -229,21 +229,22 @@ class TumblrImageDownloader extends EventEmitter {
 			url: 'https://www.tumblr.com/dashboard',
 			followRedirects: true,
 			followAllRedirects: true,
-			transform: transform_cheerio			
+			transform: transform_cheerio
 		});
-		
+
 		if ($('#signup_forms').length) {
 			let form = await this.getLoginForm();
 			_.extend(form, {
 				determine_email: username,
 				'user[email]': username,
-				'user[password]': password,								
+				'user[password]': password,
 			});
-			
-			await this.postLoginForm(form);
 
+			await this.postLoginForm(form);
+      await this.getApiToken();
 			return { already_logged_in: false };
 		} else {
+      await this.ensureApiToken();
 			return {
 				already_logged_in: true
 			};
@@ -293,10 +294,29 @@ class TumblrImageDownloader extends EventEmitter {
 
 		return resp;
 	}
-    
+
+
+	async getApiState() {
+    let $ = await request({
+      url: 'https://www.tumblr.com',
+      headers: this.headers,
+      transform: transform_cheerio
+    });
+
+    let state = $('script:contains("___INITIAL_STATE___")').first();
+    state = (state && state.html().replace('window[\'___INITIAL_STATE___\'] = ', '').replace('};', '}'));
+    this.apiState = state = JSON.parse(state);
+
+    let token = require('lodash').get(state, 'apiFetchStore.API_TOKEN');
+
+    this.headers.Authorization = `Bearer ${token}`;
+
+    return this.apiState;
+  }
+
     /**
      * Photo in a photoset.
-     * 
+     *
      * @typedef {Object} PhotosetPhoto
      * @property {string} photoId - ID of the photo
      * @property {string} photoUrl - URL of the photo
@@ -304,7 +324,7 @@ class TumblrImageDownloader extends EventEmitter {
 
      /**
       * Returns the photos in a photoset.
-      * 
+      *
       * @param {string} url - URL of the photoset.
       * @returns {Promise<PhotosetPhoto[]>} - The photos in the photoset.
       * @async
@@ -323,16 +343,37 @@ class TumblrImageDownloader extends EventEmitter {
 			return { photoId, photoUrl };
 		});
     }
-    
+
+
+    get defaultApiUrlQ() {
+	    return {
+        fields: {
+          blogs: 'name,avatar,title,url,is_adult,?is_member,description_npf,uuid,can_be_followed,?followed,?advertiser_name,theme,?primary,?is_paywall_on,?paywall_access,?subscription_plan,share_likes,share_following,can_subscribe,subscribed,ask,?can_submit,?is_blocked_from_primary,?is_blogless_advertiser,?tweet,?admin,can_message,?analytics_url,?top_tags'
+        },
+        npf: 'true',
+        reblog_info: 'true',
+        include_pinned_posts: 'true'
+      };
+    }
+
+    async ensureApiToken() {
+	    if (!this.headers.Authorization) {
+	      await this.getApiState();
+      }
+    }
+
+    mkApiUrl(blog) {
+	    return `https://www.tumblr.com/api/v2/blog/${blog}/posts`
+    }
     /**
      * Represents data on a individual photo.
-     * 
-     * @typedef {Object} Photo 
+     *
+     * @typedef {Object} Photo
      * @property {string} photoId - Unique ID of the photo.
      * @property {string} photoUrl - URL of the photo.
      * @property {string[]} tags - Tags that belong to the photo.
      * @property {string} author - Original author of the photo.
-     * @property {Buffer} [photoBytes] - The actual downloaded photo. 
+     * @property {Buffer} [photoBytes] - The actual downloaded photo.
      */
 
     /**
@@ -342,46 +383,174 @@ class TumblrImageDownloader extends EventEmitter {
      * @returns {Promise<Photo[]>}
      * @async
      */
-	async getPhotos(blogSubdomain, pageNumber, last) {
-		let page = pageNumber || 1;
-		let $ = await this.request({
-			url: `https://${blogSubdomain}.tumblr.com/page/${page}`,
-			headers: this.xhr_headers,
-			transform: transform_cheerio
-		});
+  /**
+   * Represents data on a individual photo.
+   *
+   * @typedef {Object} Photo
+   * @property {string} photoId - Unique ID of the photo.
+   * @property {string} photoUrl - URL of the photo.
+   * @property {string[]} tags - Tags that belong to the photo.
+   * @property {string} author - Original author of the photo.
+   * @property {Buffer} [photoBytes] - The actual downloaded photo.
+   */
 
-		let photos = $('article.photo, article.photoset').get();
+  /**
+   * Retrieves all photos on a page of a blog.
+   * @param {string} blogSubdomain - Subdomain of the blog.
+   * @param {number} [pageNumber=1] - Page number of the blog.
+   * @returns {Promise<Photo[]>}
+   * @async
+   */
+  async getPhotos(blogSubdomain, pageNumber, last) {
+    let results = [];
+    for await ( let photo of this.getPhotosIterator(blogSubdomain, pageNumber, false)) {
+      results.push(photo);
+    }
 
-		let lastMatch;
-		if (last) {
-			let mm = photos.map(e => $(e).attr('data-post-id')).filter(Boolean).map(s => s.split('_').shift());
-			lastMatch = [].concat(last).map(l => l.split('_').shift()).filter(f => mm.includes(f))[0];
-			if (lastMatch >= 0) lastMatch = mm.indexOf(lastMatch);
-			photos = photos.slice(0, lastMatch);
-		}
+    return results;
+  }
+
+  static normalizeKeys(obj) {
+    for (let k in obj) {
+      obj[k.replace(/_([a-z])/g, function (g) { return g[1].toUpperCase(); })] = obj[k];
+    }
+
+    return obj;
+  }
+
+  ensureImage(arr) {
+
+  }
+
+	async* getPhotosIterator(blogSubdomain, pageNumber, autoNext = false) {
+	  await this.ensureApiToken();
+	  let url, body, posts, post, result, nextPage, posters;
+
+	  let load = async (page = pageNumber) => {
+      url = this.mkApiUrl(blogSubdomain);
+      body = await this.request({
+        url,
+        qs: { ...this.defaultApiUrlQ, ...(page || {}) },
+        headers: this.headers,
+        transform: (b) => JSON.parse(b)
+      });
 
 
-		let process_photos = photos.map(async (photo) => {
-			let photoId = $(photo).attr('data-post-id');
+      if (_.get(body, 'response._links.next')) {
+        TumblrImageDownloader.normalizeKeys(_.get(body, 'response._links.next'));
+      }
+      if (_.get(body, 'response._links.next.queryParams')) {
+        TumblrImageDownloader.normalizeKeys(_.get(body, 'response._links.next.queryParams'));
+      }
+      nextPage = {
+        page_number: _.get(body, 'response._links.next.queryParams.pageNumber'),
+        offset: _.get(body, 'response._links.next.queryParams.offset'),
+      }
+      posts = (_.get(body, 'response.posts') || []);
 
-			let tags = ($('.tag-link', photo).get()).map((element) => $(element).text());
-			let author = $('.reblog-link', photo).length ? $('.reblog-link', photo).attr('data-blog-card-username') : blogSubdomain;
-			if ($(photo).is('article.photoset')) {
-				let photoset_url = `https://${blogSubdomain}.tumblr.com`+$('iframe.photoset', photo).attr('src');
-				let photoset_photos = await this.getPhotoset(photoset_url);
-				return photoset_photos.map((photo) => {
-					return _.extend(photo, { tags, author });
-				});
-			} else {
-				let photoUrl = $('img', photo).attr('src');
-				return { photoId, photoUrl, tags, author };
-			}
-		});
 
-		let result = await Promise.all(process_photos);
-		return _.flatten(result);
+      result = [];
+    }
+
+    await load();
+
+		while (post = posts.shift()) {
+		  TumblrImageDownloader.normalizeKeys(post);
+		  let photos = (post.content || []).filter(c => c.type === 'image' || (
+		    c.type === 'video' &&
+        c.poster.length
+      ));
+		  if ([ post.objectType, post.originalType ].includes('photo') || photos.length || post.rebloggedFromId) {
+		    if (post.rebloggedRootId) {
+		      try {
+            let realPost = await this.request({
+              url: `https://www.tumblr.com/api/v2/blog/${post.rebloggedRootName}/posts/${post.rebloggedRootId}/permalink`,
+              qs: {
+                'fields[blogs]': 'name,avatar,title,url,is_adult,?is_member,description_npf,uuid,can_be_followed,?followed,?advertiser_name,theme,?primary,?is_paywall_on,?paywall_access,?subscription_plan',
+                reblog_info: 'true'
+              },
+              transform: (b) => JSON.parse(b)
+            });
+
+            post = _.get(realPost, 'response.timeline.elements.0');
+            TumblrImageDownloader.normalizeKeys(post);
+            photos = (post.content || []).filter(c => c.type === 'image' || (
+              c.type === 'video' &&
+              c.poster.length
+            ));
+          } catch (err) {
+            this.handleError(err);
+            continue;
+          }
+        }
+
+		    if (!photos.length) continue;
+
+		    let postId = post.idString;
+		    let tags = post.tags;
+		    let author = post.blogName;
+
+		    posters = photos.filter(f => f.type === 'video');
+		    photos = photos.filter(f => f.type === 'image')
+
+		    let photo;
+		    let poster;
+
+		    while (poster = posters.shift()) {
+		      try {
+            TumblrImageDownloader.normalizeKeys(poster);
+
+            let urls = poster.poster.sort((a, b) => Number(b.width) - Number(a.width)).map(u => u.url);
+            let photoUrl = urls[0];
+
+            let photoObj = {photoId: postId, photoUrl, tags, author, nextPage};
+            result.push(photoObj);
+            yield photoObj;
+          } catch (err) {
+		        this.handleError(err);
+          }
+        }
+
+		    for (let i = 0; i < photos.length; i++) {
+		      try {
+            let photo = photos[i];
+            TumblrImageDownloader.normalizeKeys(photo);
+            let photoId = photos.length > 1 ? postId + '_' + (i+1) : postId;
+
+            let urls = photo.media.sort((a,b) => Number(b.width) - Number(a.width)).map(u => u.url);
+            let photoUrl = urls[0];
+
+            let photoObj = { photoId, photoUrl, tags, author, nextPage };
+            result.push(photoObj);
+            yield photoObj;
+          } catch (err) {
+            this.handleError(err);
+          }
+        }
+        if (!posts.length && autoNext && nextPage) {
+          let signal = await this.emitAsync('pageChange', { blogSubdomain, pageNumber: nextPage, result });
+          if ([].concat(signal || []).includes(false)) {
+            return;
+          }
+
+          await load(nextPage);
+        }
+      }
+    }
 	}
-    
+
+	handleError(error) {
+    /**
+     * Fires if an error occurs during scraping.
+     * @event TumblrImageDownloader#error
+     * @type {Error}
+     *
+     */
+    this.emit('error', error);
+    if (!this.hasListeners('error'))
+      throw error;
+  }
+
     /**
      * Options that can be used with {@link TumblrImageDownloader#scrapeBlog}.
      * @typedef ScrapeBlogOptions
@@ -399,102 +568,40 @@ class TumblrImageDownloader extends EventEmitter {
      * Iterates through all pages in a blog.
      * By default photos are emitted via the {@link TumblrImageDownloader#photo} event and not resolved with the Promise.
      * Set `optioons.returnPhotos` to `true` to return photos.
-     * 
+     *
      * @example
      * let downloader = new TumblrImageDownloader();
      * downlaoder.on('photo', () => { 'do something with photo' });
      * downloader.scrapeBlog({ blogSubdomain: 'blah' });
-     * 
+     *
      * @param {ScrapeBlogOptions} options - Options that can be used with this method.
      * @returns {Promise|Promise<Photo[]>}
      * @async
      */
 	async scrapeBlog(options) {
-		if (!options.blogSubdomain)
-			throw new Error("Blog subdomain not provided");
-		options.pageNumber = options.pageNumber || 1;
-		options.index = options.index || 0;
-		let { pageNumber, index, blogSubdomain, downloadPhotos, returnPhotos } = options;
-		try {
-			let photos = await this.getPhotos(blogSubdomain, pageNumber, options.lastId);
-			let photo_count = photos.length;
+      if (!options.blogSubdomain)
+        throw new Error("Blog subdomain not provided");
 
-			if (downloadPhotos) {
-				if (options.predownloadFilter) {
-					photos = photos.filter(options.predownloadFilter);
-				}
+      let processPhoto = async (photo_info) => {
+        let photo_resp = await this.downloadPhoto(photo_info.photoUrl)
+        photo_info.photoBytes = photo_resp.body;
+        return photo_info;
+      };
 
-				let process_photos = photos.map(async (photo_info) => {
-					let photo_resp = await this.downloadPhoto(photo_info.photoUrl)
-					photo_info.photoBytes = photo_resp.body;
-					return photo_info;
-				});
+      let { pageNumber, blogSubdomain, downloadPhotos, returnPhotos } = options;
+      try {
+        for await (let photo of this.getPhotosIterator(blogSubdomain, pageNumber, true)) {
+           if (options.downloadPhotos)
+             await processPhoto(photo);
 
-				photos = await Promise.all(process_photos);
-			}
+            await this.emitAsync('photo', photo);
+        }
 
-			for (let photo of photos) {
-				/**
-				 * Fires when a photo has been scraped.
-				 * @event TumblrImageDownloader#photo
-				 * @type {Photo}
-				 * 
-				 */
-				this.emit('photo', photo);
-			}
-			
-			if (returnPhotos) {
-				options.photos = (options.photos || []).concat(photos);
-			}
-
-			if (photo_count) {
-				if ((options.stopAtIndex && index >= options.stopAtIndex) || (options.stopAtPage && pageNumber >= options.stopAtPage)) {
-					/**
-					 * Fires when the scraper has scrapped all pages.
-					 * @event TumblrImageDownloader#end
-					 * 
-					 */
-					this.emit('end');
-					if (returnPhotos)
-						return options.photos;
-					return;
-				}
-				options.pageNumber++;
-				options.index++;
-				/**
-				 * Represnets an object that will be sent with {@link TumblrImageDownloader#pageChange}
-				 * @typedef PageChangeEvent
-				 * @property {string} blogSubdomain - Subdomain of the blog being scraped.
-				 * @property {number} pageNumber - Page the scraper is currently on in the blog.
-				 * @property {number} index - How many pages have been scraped so far.
-				 */
-				
-				/**
-				 * Fires when the scraper has moved on to the next page.
-				 * @event TumblrImageDownloader#pageChange
-				 * @type {PageChangeEvent}
-				 * 
-				 */
-				this.emit('pageChange', { blogSubdomain, pageNumber, index  })
-				return await this.scrapeBlog(options);
-			}
-			else {
-				this.emit('end');
-				if (returnPhotos) 
-					return options.photos;
-			}
-		} catch (error) { 
-			/**
-			 * Fires if an error occurs during scraping.
-			 * @event TumblrImageDownloader#error
-			 * @type {Error}
-			 * 
-			 */
-			this.emit('error', error);
-			throw error;
-		}
-	} 
-	
+        this.emit('end', { blogSubdomain, pageNumber });
+      } catch (error) {
+        this.handleError(error);
+      }
+	}
 }
 
 /**
