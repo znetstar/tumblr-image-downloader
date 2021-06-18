@@ -422,6 +422,36 @@ class TumblrImageDownloader extends EventEmitter {
 
   }
 
+  static getContent(post) {
+    let content = (_.get(post, 'content') || []);
+
+    if (_.get(post, 'trail.length')) {
+        for (let block of post.trail) {
+          content = content.concat(block.content);
+        }
+    }
+
+    let usedKeys = new Set();
+    let results = [];
+    for (let c of content) {
+      if (c.type === 'image' || (
+        c.type === 'video' &&
+        c.poster.length
+      )) {
+        let mediaKey = _.get(c, 'media.0.media_key');
+        if (mediaKey && usedKeys.has( mediaKey )) {
+          continue;
+        }
+
+        usedKeys.add(mediaKey);
+
+        results.push(c);
+      }
+
+    }
+    return results;
+  }
+
 	async* getPhotosIterator(blogSubdomain, pageNumber, autoNext = false) {
 	  await this.ensureApiToken();
 	  let url, body, posts, post, result, nextPage, posters;
@@ -456,12 +486,9 @@ class TumblrImageDownloader extends EventEmitter {
 
 		while (post = posts.shift()) {
 		  TumblrImageDownloader.normalizeKeys(post);
-		  let photos = (post.content || []).filter(c => c.type === 'image' || (
-		    c.type === 'video' &&
-        c.poster.length
-      ));
+		  let photos = TumblrImageDownloader.getContent(post);
 		  if ([ post.objectType, post.originalType ].includes('photo') || photos.length || post.rebloggedFromId) {
-		    if (post.rebloggedRootId) {
+		    if (!photos.length && post.rebloggedRootId) {
 		      try {
             let realPost = await this.request({
               url: `https://www.tumblr.com/api/v2/blog/${post.rebloggedRootName}/posts/${post.rebloggedRootId}/permalink`,
@@ -474,10 +501,7 @@ class TumblrImageDownloader extends EventEmitter {
 
             post = _.get(realPost, 'response.timeline.elements.0');
             TumblrImageDownloader.normalizeKeys(post);
-            photos = (post.content || []).filter(c => c.type === 'image' || (
-              c.type === 'video' &&
-              c.poster.length
-            ));
+            photos = TumblrImageDownloader.getContent(post);
           } catch (err) {
             this.handleError(err);
             continue;
@@ -488,7 +512,7 @@ class TumblrImageDownloader extends EventEmitter {
 
 		    let postId = post.idString;
 		    let tags = post.tags;
-		    let author = post.blogName;
+		    let author = post.rebloggedRootName || post.blogName;
 
 		    posters = photos.filter(f => f.type === 'video');
 		    photos = photos.filter(f => f.type === 'image')

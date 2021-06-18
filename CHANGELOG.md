@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.2.0] - 2021-06-18
+### Added
+- Extracts content from the `trail` array as well (for deactivated reblogs).
+
+## [2.1.1] - 2021-06-18
+### Changed
+- Updates sharp
+
 ## [2.1.0] - 2021-06-18
 ### Changed
 - Adds support for Tumblr blogs only accessible via "tumblr.com/blogs/..."
