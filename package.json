@@ -6,10 +6,10 @@
   "bin": {
     "tumblr-image-downloader": "bin/tumblr-image-downloader"
   },
-    "publishConfig": {
-        "registry": "https://registry.npmjs.org",
-        "access": "public"
-    },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },
   "scripts": {
     "test": "mocha --exit test/test.js",
     "docs": "grunt docs"
