@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.3.0] - 2021-06-19
+### Added
+- All events from the `TumblrDownloader` (like `photo`) are fired scoped to the blog name, and the global event. So a photo found on blog `foobar` would fire `TumblrImageDownloader.on('photo', myphoto)` and `TumblrImageDownloader.on('photo:foobar', myphoto)` 
+
 ## [2.2.0] - 2021-06-18
 ### Added
 - Extracts content from the `trail` array as well (for deactivated reblogs).

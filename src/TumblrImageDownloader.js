@@ -80,7 +80,12 @@ class TumblrImageDownloader extends EventEmitter {
 	  * @param {TumblrImageDownloaderOptions} options - Options that can be passed to the constructor. All are optional.
 	  */
 	constructor(options) {
-		super();
+		super({
+      wildcard: true,
+      delimiter: options.delimiter || ':'
+    });
+
+		this.delimiter = options.delimiter || ':';
 
 		let { cookie_jar, user_agent, proxy_url, mobile_user_agent } = options;
 
@@ -452,6 +457,19 @@ class TumblrImageDownloader extends EventEmitter {
     return results;
   }
 
+
+  scopedEmit(scope, event, ...args) {
+    this.emit(`${event}${this.delimiter}${scope}`, ...args);
+    this.emit(`${event}`, ...args);
+  }
+
+  scopedEmitAsync(scope, event, ...args) {
+    return Promise.all([
+      this.emitAsync(`${event}${this.delimiter}${scope}`, ...args),
+      this.emitAsync(`${event}`, ...args)
+    ]);
+  }
+
 	async* getPhotosIterator(blogSubdomain, pageNumber, autoNext = false) {
 	  await this.ensureApiToken();
 	  let url, body, posts, post, result, nextPage, posters;
@@ -503,7 +521,7 @@ class TumblrImageDownloader extends EventEmitter {
             TumblrImageDownloader.normalizeKeys(post);
             photos = TumblrImageDownloader.getContent(post);
           } catch (err) {
-            this.handleError(err);
+            this.handleError(err, blogSubdomain);
             continue;
           }
         }
@@ -531,7 +549,7 @@ class TumblrImageDownloader extends EventEmitter {
             result.push(photoObj);
             yield photoObj;
           } catch (err) {
-		        this.handleError(err);
+		        this.handleError(err, blogSubdomain);
           }
         }
 
@@ -548,11 +566,11 @@ class TumblrImageDownloader extends EventEmitter {
             result.push(photoObj);
             yield photoObj;
           } catch (err) {
-            this.handleError(err);
+            this.handleError(err, blogSubdomain);
           }
         }
         if (!posts.length && autoNext && nextPage) {
-          let signal = await this.emitAsync('pageChange', { blogSubdomain, pageNumber: nextPage, result });
+          let signal = await this.scopedEmitAsync(blogSubdomain, 'pageChange', { blogSubdomain, pageNumber: nextPage, result });
           if ([].concat(signal || []).includes(false)) {
             return;
           }
@@ -563,16 +581,19 @@ class TumblrImageDownloader extends EventEmitter {
     }
 	}
 
-	handleError(error) {
-    /**
-     * Fires if an error occurs during scraping.
-     * @event TumblrImageDownloader#error
-     * @type {Error}
-     *
-     */
-    this.emit('error', error);
+	handleError(error, scope) {
     if (!this.hasListeners('error'))
       throw error;
+    else {
+      /**
+       * Fires if an error occurs during scraping.
+       * @event TumblrImageDownloader#error
+       * @type {Error}
+       *
+       */
+      if (!scope) this.emit('error', error);
+      else this.scopedEmit(scope, 'error', error);
+    }
   }
 
     /**
@@ -618,12 +639,12 @@ class TumblrImageDownloader extends EventEmitter {
            if (options.downloadPhotos)
              await processPhoto(photo);
 
-            await this.emitAsync('photo', photo);
+            await this.scopedEmitAsync(blogSubdomain, 'photo', photo);
         }
 
-        this.emit('end', { blogSubdomain, pageNumber });
+        this.scopedEmit(blogSubdomain, 'end', { blogSubdomain, pageNumber });
       } catch (error) {
-        this.handleError(error);
+        this.handleError(error, options.blogSubdomain);
       }
 	}
 }
