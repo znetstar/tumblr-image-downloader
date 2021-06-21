@@ -441,7 +441,7 @@ class TumblrImageDownloader extends EventEmitter {
     for (let c of content) {
       if (c.type === 'image' || (
         c.type === 'video' &&
-        c.poster.length
+        (c.poster && c.poster.length)
       )) {
         let mediaKey = _.get(c, 'media.0.media_key');
         if (mediaKey && usedKeys.has( mediaKey )) {
@@ -541,6 +541,10 @@ class TumblrImageDownloader extends EventEmitter {
 		    while (poster = posters.shift()) {
 		      try {
             TumblrImageDownloader.normalizeKeys(poster);
+
+            if (!poster.poster) {
+              continue
+            }
 
             let urls = poster.poster.sort((a, b) => Number(b.width) - Number(a.width)).map(u => u.url);
             let photoUrl = urls[0];
