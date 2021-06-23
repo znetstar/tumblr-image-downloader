@@ -1,6 +1,6 @@
 {
     "name": "tumblr-image-downloader",
-    "version": "2.3.1",
+    "version": "2.3.2",
     "description": "Contains tools for downloading images from Tumblr blogs",
     "main": "src/index.js",
     "bin": {

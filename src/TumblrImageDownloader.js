@@ -643,6 +643,8 @@ class TumblrImageDownloader extends EventEmitter {
            if (options.downloadPhotos)
              await processPhoto(photo);
 
+            photo.blogSubdomain = blogSubdomain;
+
             await this.scopedEmitAsync(blogSubdomain, 'photo', photo);
         }
 
