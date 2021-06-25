@@ -502,6 +502,8 @@ class TumblrImageDownloader extends EventEmitter {
 
     await load();
 
+    posts = posts.map((k, i) => { k.index = i; return k; })
+
     let index = 0;
     while (post = posts.shift()) {
       TumblrImageDownloader.normalizeKeys(post);
@@ -517,8 +519,9 @@ class TumblrImageDownloader extends EventEmitter {
               },
               transform: (b) => JSON.parse(b)
             });
-
+            let pi = post.index + 0;
             post = _.get(realPost, 'response.timeline.elements.0');
+            post.index = pi;
             TumblrImageDownloader.normalizeKeys(post);
             photos = TumblrImageDownloader.getContent(post);
           } catch (err) {
@@ -533,28 +536,64 @@ class TumblrImageDownloader extends EventEmitter {
         let tags = post.tags;
         let author = post.rebloggedRootName || post.blogName;
 
-        posters = photos.filter(f => f.type === 'video');
+        posters = photos.filter(f => f.type === 'video' && f.poster);
         photos = photos.filter(f => f.type === 'image')
 
         let photo;
         let poster;
 
-        while (poster = posters.shift()) {
+        let indexTotal = posters.length + photos.length;
+        let inner_index = 0;
+
+        let report = async (photoId = null) => {
+          let pageTotal = body.response.posts.length;
+          let pagePosition = ( pageTotal - (posts.length + 1))+((inner_index++)/indexTotal);
+
+          let pageProgress = pagePosition/pageTotal;
+
+          let blogPosition = (Number(_.get(pageNumber, 'offset')) || 0)+pagePosition;
+          let blogTotal = body.response.total_posts;
+          let blogProgress = blogPosition/blogTotal;
+
+          let progress = {
+            totals: {
+              pageProgress,
+              pageTotal,
+              pagePosition,
+              blogPosition,
+              blogProgress,
+              blogTotal,
+            },
+            blogSubdomain,
+            photoId,
+            pageNumber
+          };
+
+          return this.scopedEmitAsync(blogSubdomain, 'progress', progress);
+        }
+
+        for (let i = 0; i < posters.length; i++) {
+          let Err;
+          let photoId;
           try {
+            let poster = posters[i];
             TumblrImageDownloader.normalizeKeys(poster);
 
-            if (!poster.poster) {
-              continue
-            }
-
-            let urls = poster.poster.sort((a, b) => Number(b.width) - Number(a.width)).map(u => u.url);
+            let urls = poster.poster.sort((a, b) => Number(b.width * b.height) - Number(a.width * a.height)).map(u => u.url);
             let photoUrl = urls[0];
 
-            let photoObj = {photoId: postId, photoUrl, tags, author, nextPage};
+            let photoObj = { photoId: postId, photoUrl, tags, author, nextPage};
             result.push(photoObj);
+
+            await report();
+
             yield photoObj;
           } catch (err) {
-            this.handleError(err, blogSubdomain);
+            Err = err;
+          } finally {
+            await report(photoId);
+            if (Err)
+              this.handleError(err, blogSubdomain);
           }
         }
 
@@ -566,7 +605,7 @@ class TumblrImageDownloader extends EventEmitter {
             TumblrImageDownloader.normalizeKeys(photo);
             photoId = photos.length > 1 ? postId + '_' + (i+1) : postId;
 
-            let urls = photo.media.sort((a,b) => Number(b.width) - Number(a.width)).map(u => u.url);
+            let urls = photo.media.sort((a,b) => Number(b.width * b.width) - Number(a.width * a.height)).map(u => u.url);
             let photoUrl = urls[0];
 
             let photoObj = { photoId, photoUrl, tags, author, nextPage };
@@ -575,29 +614,7 @@ class TumblrImageDownloader extends EventEmitter {
           } catch (err) {
             Err = err;
           } finally {
-            let pagePosition = i;
-            let pageTotal = body.response.posts.length;
-            let pageProgress = pagePosition/pageTotal;
-
-            let blogPosition = (Number(_.get(pageNumber, 'offset')) || 0)+pagePosition;
-            let blogTotal = body.response.total_posts;
-            let blogProgress = blogPosition/blogTotal;
-
-            let progress = {
-              totals: {
-                pageProgress,
-                pageTotal,
-                pagePosition,
-                blogPosition,
-                blogProgress,
-                blogTotal,
-              },
-              blogSubdomain,
-              photoId,
-              pageNumber
-            };
-
-            await this.scopedEmitAsync(blogSubdomain, 'progress', progress);
+            await report(photoId);
             if (Err) {
               this.handleError(err, blogSubdomain);
             }
@@ -613,6 +630,7 @@ class TumblrImageDownloader extends EventEmitter {
           await load(nextPage);
         }
       }
+
     }
   }
 
